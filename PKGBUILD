@@ -30,7 +30,7 @@ build() {
         --strip \
         --clean \
         --name "as-inst" \
-        "as-inst.py"
+        "as-inst"
 
     if [ $? -ne 0 ]; then
         echo ":: ERROR: PyInstaller failed to create the executable."
