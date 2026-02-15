@@ -1,46 +1,36 @@
-# Maintainer: Antisos Release Engineering <dev@antisos.org>
+# Maintainer: franiekidos <dev@antisos.org>
 pkgname=as-inst
 pkgver=2026.02.15
-pkgrel=1
-pkgdesc="AntisOS Bootstrap Installer - Standalone Binary"
+pkgrel=2
+pkgdesc="AntisOS Forwarding Port - Compiled on Stable Toolchain"
 arch=('x86_64')
 url="https://github.com/franiekidos/as-inst"
 license=('GPL')
 
-# Runtime dependencies for the apps as-inst will eventually pull
-depends=('curl' 'git' 'base-devel')
-
-# Build dependencies - using the Arch repo pyinstaller
-makedepends=('pyinstaller' 'git')
+# Runtime needs
+depends=('curl' 'git' 'gnupg' 'base-devel')
+# We need the specific python version and pip to install pyinstaller
+makedepends=('python312' 'python-pip' 'git')
 
 source=("git+https://github.com/franiekidos/as-inst.git")
 sha256sums=('SKIP')
 
 build() {
-    cd "$srcdir/${pkgname}"
+    cd "$srcdir/as-inst"
 
-    echo "==> Starting PyInstaller Binary Build..."
-    
-    # --onefile: Packages everything into a single ELF binary
-    # --strip: Removes debug symbols for a smaller 'No-Dox' binary
-    # --clean: Cleans PyInstaller cache before building
-    # Assuming your entry point script is named as-inst.py
-    pyinstaller \
-        --onefile \
-        --strip \
-        --clean \
-        --name "as-inst" \
-        "as-inst"
+    # Create venv using the STABLE python
+    python3.12 -m venv build_env
+    source build_env/bin/activate
 
-    if [ $? -ne 0 ]; then
-        echo ":: ERROR: PyInstaller failed to create the executable."
-        exit 1
-    fi
+    # Install pyinstaller here - it will now compile its bootloader
+    # because it finally sees a Python version it supports (3.12)
+    pip install pyinstaller
+
+    pyinstaller --onefile --strip --clean --name "as-inst" "as-inst.py"
+    deactivate
 }
 
 package() {
-    cd "$srcdir/${pkgname}"
-
-    # Install the standalone binary to /usr/bin
+    cd "$srcdir/as-inst"
     install -Dm755 "dist/as-inst" "${pkgdir}/usr/bin/as-inst"
 }
