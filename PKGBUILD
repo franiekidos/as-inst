@@ -26,7 +26,7 @@ build() {
     # because it finally sees a Python version it supports (3.12)
     pip install pyinstaller
 
-    pyinstaller --onefile --strip --clean --name "as-inst" "as-inst.py"
+    pyinstaller --onefile --strip --clean --name "as-inst" "as-inst"
     deactivate
 }
 
