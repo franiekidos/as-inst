@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import os
+import sys
+import subprocess
+import shutil
+
+# Configuration
+REPO_BASE = "https://raw.githubusercontent.com/your-username/antisos-pkgbuilds/main"
+BUILD_ROOT = "/tmp/as-build"
+
+# AntisOS Branding
+def log(message, color="green"):
+    colors = {"green": "\033[92m", "red": "\033[91m", "cyan": "\033[96m", "reset": "\033[0m"}
+    print(f"{colors.get(color, '')}==>{colors['reset']} {message}")
+
+def run_command(cmd, cwd=None):
+    """Runs a system command and handles errors."""
+    try:
+        subprocess.check_call(cmd, cwd=cwd, shell=True)
+    except subprocess.CalledProcessError as e:
+        log(f"Command failed: {e}", "red")
+        sys.exit(1)
+
+def install_pkg(pkg_name):
+    pkg_dir = os.path.join(BUILD_ROOT, pkg_name)
+    
+    if os.path.exists(pkg_dir):
+        shutil.rmtree(pkg_dir)
+    os.makedirs(pkg_dir)
+
+    log(f"Fetching recipe for {pkg_name}...", "cyan")
+    
+    # Download PKGBUILD
+    pkg_url = f"{REPO_BASE}/{pkg_name}/PKGBUILD"
+    run_command(f"curl -fsSL {pkg_url} -o {pkg_dir}/PKGBUILD")
+
+    # Optional: Download Signature for Era 2 Verification
+    # run_command(f"curl -fsSL {pkg_url}.sig -o {pkg_dir}/PKGBUILD.sig")
+    # run_command(f"gpg --verify {pkg_dir}/PKGBUILD.sig {pkg_dir}/PKGBUILD")
+
+    log(f"Building {pkg_name} with makepkg...", "green")
+    
+    # -s: sync deps, -i: install, -r: remove build-time deps, --noconfirm
+    # Note: makepkg CANNOT run as root. The script handles this if run in the ISO.
+    run_command("makepkg -sir --noconfirm", cwd=pkg_dir)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        log("Usage: as-inst <package_name> or as-inst core", "red")
+        sys.exit(1)
+
+    target = sys.argv[1]
+
+    if target == "core":
+        core_apps = ["amo", "antisos-finetuner", "antisos-hub"]
+        for app in core_apps:
+            install_pkg(app)
+    else:
+        install_pkg(target)
